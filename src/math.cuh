@@ -29,5 +29,15 @@ __device__ __host__ void vec3_sub(vec3* result, vec3* a, vec3* b);
 __device__ __host__ double vec3_norm(vec3* v);
 __device__ __host__ double vec3_dot(vec3* a, vec3* b);
 __device__ __host__ void vec3_normalize(vec3* v);
+__device__ __host__ void vec3_cross(vec3* result, vec3* a, vec3* b);
+__device__ __host__ void vec3_rotate(vec3* v, vec3* ax, double angle);
+
+struct mat4 {
+    double m[16];
+};
+
+__device__ __host__ void mat4_mul(mat4* result, mat4* a, mat4* b);
+
+__device__ __host__ void clamp(double* f, double mn, double mx);
 
 #endif

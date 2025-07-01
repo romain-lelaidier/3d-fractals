@@ -5,14 +5,6 @@
 
 #include "raytracer.cuh"
 
-struct mov10 {
-    bool front, back;
-    bool left, right;
-    bool up, down;
-    bool turnR, turnL;
-    bool turnU, turnD;
-};
-
 void checkCudaError(cudaError_t err, const char* operation) {
     if (err != cudaSuccess) {
         fprintf(stderr, "Error during %s: %s\n", operation, cudaGetErrorString(err));
@@ -21,43 +13,19 @@ void checkCudaError(cudaError_t err, const char* operation) {
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    mov10* movement = (mov10*)glfwGetWindowUserPointer(window);
+    Camera* camera = (Camera*) glfwGetWindowUserPointer(window);
     // movement
-    if (key == GLFW_KEY_W) movement->front = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_S) movement->back  = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_A) movement->left  = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_D) movement->right = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_E) movement->up    = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_Q) movement->down  = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_W) camera->mv.F = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_S) camera->mv.B = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_A) camera->mv.L = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_D) camera->mv.R = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_E) camera->mv.U = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_Q) camera->mv.D = action == GLFW_PRESS || action == GLFW_REPEAT;
     // direction
-    if (key == GLFW_KEY_LEFT)  movement->turnL = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_RIGHT) movement->turnR = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_UP)    movement->turnU = action == GLFW_PRESS || action == GLFW_REPEAT;
-    if (key == GLFW_KEY_DOWN)  movement->turnD = action == GLFW_PRESS || action == GLFW_REPEAT;
-}
-
-void updateMovement(Camera* camera, mov10* movement, double dt) {
-    vec3 m = { .fields = { 0.0, 0.0, 0.0 } };
-    if (movement->back)  m.fields.x += 1.0;
-    if (movement->front) m.fields.x -= 1.0;
-    if (movement->right) m.fields.y += 1.0;
-    if (movement->left)  m.fields.y -= 1.0;
-    if (movement->up)    m.fields.z += 1.0;
-    if (movement->down)  m.fields.z -= 1.0;
-    vec3_normalize(&m);
-
-    double speed = dt * 3.0;    // camera speed
-    double fx = cos(camera->direction.fields.h);
-    double fy = sin(camera->direction.fields.h);
-    camera->position.fields.x += (fy * m.fields.y - fx * m.fields.x) * speed;
-    camera->position.fields.y += (- fy * m.fields.x - fx * m.fields.y) * speed;
-    camera->position.fields.z += m.fields.z * speed;
-
-    double rspeed = dt * 0.3;   // camera rotationary speed
-    if (movement->turnL) camera->direction.fields.h += rspeed;
-    if (movement->turnR) camera->direction.fields.h -= rspeed;
-    if (movement->turnU) camera->direction.fields.v += rspeed;
-    if (movement->turnD) camera->direction.fields.v -= rspeed;
+    if (key == GLFW_KEY_LEFT)  camera->mv.RL = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_RIGHT) camera->mv.RR = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_UP)    camera->mv.RU = action == GLFW_PRESS || action == GLFW_REPEAT;
+    if (key == GLFW_KEY_DOWN)  camera->mv.RD = action == GLFW_PRESS || action == GLFW_REPEAT;
 }
 
 int main() {
@@ -80,12 +48,15 @@ int main() {
     glfwMakeContextCurrent(window);
 
     Camera hostCamera;
-    hostCamera.position = { .fields = { 10.0, 0.0, 0.0 } };
-    hostCamera.direction = { .fields = { PI, 0.0 } };
-    hostCamera.wideness = 55 * PI / 180;
+    hostCamera.position = { .fields = { 5.0, 0.0, 0.0 } };
+    hostCamera.direction = { .fields = { -1.0, 0.0, 0.0 } };
+    hostCamera.up = { .fields = { 0.0, 0.0, 1.0 } };
+    hostCamera.mv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    hostCamera.moveSpeed = 5.0;
+    hostCamera.rotaSpeed = 0.05;
+    hostCamera.fov = 55 * PI / 180;
 
-    mov10 movement = { false, false, false, false };
-    glfwSetWindowUserPointer(window, &movement);
+    glfwSetWindowUserPointer(window, &hostCamera);
     glfwSetKeyCallback(window, keyCallback);
 
     // CUDA
@@ -116,12 +87,13 @@ int main() {
         frameCount++;
         if (currentTime - previousSecondTime >= 1.0) {
             printf("FPS: %d\n", frameCount);
+            printf("POSITION: %f, %f, %f\n", hostCamera.position.raw[0], hostCamera.position.raw[1], hostCamera.position.raw[2]);
+            printf("DIRECTION: %f, %f, %f\n", hostCamera.direction.raw[0], hostCamera.direction.raw[1], hostCamera.direction.raw[2]);
             frameCount = 0;
             previousSecondTime = currentTime;
         }
-
-        updateMovement(&hostCamera, &movement, deltaTime);
         
+        cam_updateMv(&hostCamera, deltaTime);
         err = cudaMemcpy(devCamera, &hostCamera, sizeof(Camera), cudaMemcpyHostToDevice);
         checkCudaError(err, "cudaMemcpy");
 

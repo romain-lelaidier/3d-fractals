@@ -1,40 +1,70 @@
 #include "raytracer.cuh"
+#include "camera.cuh"
 
-__device__ unsigned char dtc(double d) {
+__device__
+unsigned char dtc(double d) {
     if (d <= 0.0) return 0;
     if (d >= 255.0) return 255;
     return (char)d;
 }
 
 __device__
-void color(unsigned char* pixels, double x, double y, double wh, Camera* camera) {
-    a2 d;
-    d.fields.h = camera->direction.fields.h - atan(x * tan(camera->wideness/2));
-    d.fields.v = camera->direction.fields.v + atan((y/wh) * tan(camera->wideness/2));
+bool intersectSphere(Sphere* sphere, Ray* ray) {
+    int i;
+    double upc, delta;
+    double ocDist;  // distance from ray origin to sphere center (euclidean)
+    vec3 otc;       // vector ray origin to sphere center
+    double orcDist; // distance from ray origin to sphere surface (along the ray)
+    vec3 sn;        // sphere normal at the intersection
 
-    vec3 sphereCenter = { .fields = { 0.0, 0.0, 0.0 } };
-    vec3 ptc;
-    vec3_sub(&ptc, &sphereCenter, &camera->position);
+    vec3_sub(&otc, &sphere->center, &ray->origin);
+    ocDist = vec3_norm(&otc);
 
-    vec3 u = {
-        .fields = {
-            cos(d.fields.v) * cos(d.fields.h),
-            cos(d.fields.v) * sin(d.fields.h),
-            sin(d.fields.v)
+    if (ocDist < sphere->radius) return 0;   // ray origin inside the sphere
+
+    upc = vec3_dot(&ray->direction, &otc);
+    delta = upc * upc + sphere->radius * sphere->radius - vec3_dot(&otc, &otc);
+
+    if (delta > 0.0) {
+        // intersection
+        orcDist = ocDist - sqrt(delta);
+
+        for (i = 0; i < 3; i++) {
+            sn.raw[i] = ray->origin.raw[i] + ray->direction.raw[i] * orcDist;
+            ray->color[i] = dtc(abs(sn.raw[i]) * 255);
         }
-    };
 
-    double lambda = max(0.0, vec3_dot(&u, &ptc));
-    double dist = lambda * lambda - 2 * lambda * vec3_dot(&u, &ptc) + vec3_dot(&ptc, &ptc);
+        // ray->color[0] = dtc(orcDist * 10);
+        // ray->color[1] = dtc(orcDist * 10);
+        // ray->color[2] = dtc(orcDist * 10);
 
-    int c = dist < 1.0 ? 255 : 0;
-    pixels[0] = c;
-    pixels[1] = c;
-    pixels[2] = c;
+        return 1;
+    }
 
-    // pixels[0] = dtc(u.raw[0] * 255);
-    // pixels[1] = dtc(u.raw[1] * 255);
-    // pixels[2] = dtc(u.raw[2] * 255);
+    return 0;
+}
+
+__device__
+void colorizeRay(Ray* ray) {
+    ray->color[0] = 0;
+    ray->color[1] = 0;
+    ray->color[2] = 0;
+
+    Sphere sphere = { { 0.0, 0.0, 0.0 }, 1.0 };
+    intersectSphere(&sphere, ray);
+}
+
+__device__
+void colorizePixel(unsigned char* color, double ndcx, double ndcy, double wh, Camera* camera) {
+    Ray ray;
+    ray.origin = camera->position;
+    ndcToDirection(&ray.direction, ndcx, ndcy, wh, camera);
+
+    colorizeRay(&ray);
+
+    color[0] = ray.color[0];
+    color[1] = ray.color[1];
+    color[2] = ray.color[2];
 }
 
 __global__
@@ -51,6 +81,6 @@ void rayTraceKernel(unsigned char* imageData, int width, int height, Camera* cam
         int index = (py * width + px) * 3;
         double x = ((double)px / dw) * 2.0 - 1.0;
         double y = ((double)py / dh) * 2.0 - 1.0;
-        color(&imageData[index], x, y, dw/dh, camera);
+        colorizePixel(&imageData[index], x, y, dw/dh, camera);
     }
 }
