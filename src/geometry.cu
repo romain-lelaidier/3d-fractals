@@ -2,12 +2,12 @@
 
 
 
-// ----------- intersectSphere() -----------
+// ----------- colorizeSphere() -----------
 //
 // if the ray intersects the sphere, this function colorizes the ray
 // and makes it bounce on the sphere for reflection (updates origin and direction)
 __device__
-float intersectSphere(Sphere* sphere, Ray* ray) {
+float colorizeSphere(Sphere* sphere, Ray* ray) {
     float upc, delta;
     float ocDist;   // distance from ray origin to sphere center (euclidean)
     float3 otc;     // vector ray origin to sphere center
@@ -29,13 +29,14 @@ float intersectSphere(Sphere* sphere, Ray* ray) {
         sn.x = ray->origin.x + ray->direction.x * orcDist;
         sn.y = ray->origin.y + ray->direction.y * orcDist;
         sn.z = ray->origin.z + ray->direction.z * orcDist;
-        ray->color.x = abs(sn.x);
-        ray->color.y = abs(sn.y);
-        ray->color.z = abs(sn.z);
+        // ray->color.x = abs(sn.x);
+        // ray->color.y = abs(sn.y);
+        // ray->color.z = abs(sn.z);
 
-        // ray->color = make_float3(sphere->radius, sphere->radius, sphere->radius);
+        bounceRay(ray, sn);
 
-        ray->direction = make_float3(0.0, 0.0, 0.0);
+        float light = dot(ray->direction, make_float3(0, 0, 1));
+        ray->color = make_float3(light, light, light);
 
         return orcDist;
     }

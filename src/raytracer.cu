@@ -3,7 +3,7 @@
 #include "ray.cuh"
 #include "geometry.cuh"
 
-#define RPP 2   // rays per pixel (linear, so in reality there are RPP*RPP rays per pixel)
+#define RPP 1   // rays per pixel (linear, so in reality there are RPP*RPP rays per pixel)
 
 
 
@@ -30,6 +30,13 @@ void colorizeRay(Ray* ray, Julia &julia) {
     ray->color.z = 0.3;
 
     normalize(&ray->direction);
+
+    // Sphere s = {
+    //     make_float3(0, 0, 0),
+    //     1
+    // };
+
+    // colorizeSphere(&s, ray);
 
     colorizeJulia(julia, ray);
 }

@@ -109,20 +109,32 @@ __device__ bool clampToBoundingSphere(float3* origin, const float3 &direction) {
 }
 
 __device__ float colorizeJulia(const Julia &julia, Ray* ray) {
+    float3 color = make_float3(242, 232, 207) / 256;
+    ray->color = color;
+
     bool clamped = clampToBoundingSphere(&ray->origin, ray->direction);
     if (!clamped) return INFINITY; // the ray does not go through the bounding sphere -> no intersection
 
     float t = rayMarch(julia, *ray);
     if (t < INFINITY) {
+        ray->origin = ray->origin + t * ray->direction;
         // intersection with the set : colorize the ray
 
-        // reflection
-        float3 normal = juliaNormal(julia, ray->origin + t * ray->direction);
+        float3 normal = juliaNormal(julia, ray->origin);
 
-        // ray->color = make_float3(1-t, 1-t, 1-t);
-        // ray->color = make_float3(abs(normal.x), abs(normal.y), abs(normal.z));
-        ray->color = normal;
+        float light = pow(dot(normal, make_float3(0, 0, 1)), 0.85);
+        light = light + dot(normal, make_float3(0, 0, -1)) / 3;
+        clamp(&light, 0, 1);
+        color = ((1-light) * make_float3(56, 102, 65) + light * make_float3(167, 201, 87)) / 256;
+        
+        // reflection
+        // bounceRay(ray, normal);
+        // t = rayMarch(julia, *ray);
+        // float shadow = t < INFINITY ? dot(ray->direction, make_float3(0, 0, 1)) : 0;
+        // color = make_float3(106, 153, 78) / 256 + (shadow/3) * make_float3(1, 1, 1);
     }
+    
+    ray->color = color;
 
     return t;
 }

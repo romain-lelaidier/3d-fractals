@@ -81,6 +81,7 @@ int main() {
     camera.fov = 55 * PI / 180;
 
     Julia julia = {
+        // make_float4(acos(0), acos(0), acos(0), acos(0)),
         make_float4(acos(0.1), acos(0.5), acos(0.6), acos(-0.2)),
         make_float4(0, 0, 0, 0),
         0.001, 0.001, 10,

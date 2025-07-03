@@ -8,6 +8,6 @@ struct Sphere {
     float radius;
 };
 
-__device__ float intersectSphere(Sphere* sphere, Ray* ray);
+__device__ float colorizeSphere(Sphere* sphere, Ray* ray);
 
 #endif
