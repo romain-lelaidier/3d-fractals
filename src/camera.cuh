@@ -9,20 +9,22 @@ struct Moving {
     bool U, D;
     bool RL, RR;
     bool RU, RD;
+    bool P[9];
 };
 
 struct Camera {
-    vec3 position;
-    vec3 direction;
-    vec3 up;
-    double fov;
-    double moveSpeed;
-    double rotaSpeed;
+    float3 position;
+    float3 direction;
+    float3 up;
+    float fov;
+    float moveSpeed;
+    float rotaSpeed;
     Moving mv;
 };
 
-void cam_updateMv(Camera* camera, double dt);
-__device__ __host__ void cam_moveFB(Camera* camera, bool f);
-__device__ void ndcToDirection(vec3* result, double x, double y, double wh, Camera* camera);
+float boolsToFloat(bool l, bool r);
+void cam_updateMv(Camera &camera, float dt);
+__device__ __host__ void cam_moveFB(Camera &camera, bool f);
+__device__ float3 ndcToDirection(float x, float y, float wh, Camera &camera);
 
 #endif

@@ -4,40 +4,47 @@
 #define PI 3.14159
 
 struct a2fields {
-    double h;
-    double v;
+    float h;
+    float v;
 };
 
 union a2 {
     a2fields fields;
-    double raw[2];
+    float raw[2];
 };
-
-struct vec3fields {
-    double x;
-    double y;
-    double z;
-};
-
-union vec3 {
-    vec3fields fields;
-    double raw[3];
-};
-
-__device__ __host__ void vec3_add(vec3* result, vec3* a, vec3* b);
-__device__ __host__ void vec3_sub(vec3* result, vec3* a, vec3* b);
-__device__ __host__ double vec3_norm(vec3* v);
-__device__ __host__ double vec3_dot(vec3* a, vec3* b);
-__device__ __host__ void vec3_normalize(vec3* v);
-__device__ __host__ void vec3_cross(vec3* result, vec3* a, vec3* b);
-__device__ __host__ void vec3_rotate(vec3* v, vec3* ax, double angle);
 
 struct mat4 {
-    double m[16];
+    float m[16];
 };
 
 __device__ __host__ void mat4_mul(mat4* result, mat4* a, mat4* b);
 
-__device__ __host__ void clamp(double* f, double mn, double mx);
+__device__ __host__ void clamp(float* f, float mn, float mx);
+
+__device__ __host__ float3 operator+(const float3 &a, const float3 &b);
+__device__ __host__ float3 operator-(const float3 &a, const float3 &b);
+__device__ __host__ float3 operator*(float lambda, const float3 &a);
+__device__ __host__ float3 operator/(const float3 &a, float lambda);
+__device__ __host__ float3 cross(const float3 &a, const float3 &b);
+__device__ __host__ float3 rotate(const float3 &v, const float3 &a, float angle);
+__device__ __host__ float3 normalize(const float3 &a);
+__device__ __host__ float dot(const float3 &a, const float3 &b);
+__device__ __host__ float norm(const float3 &a);
+__device__ __host__ void normalize(float3* a);
+
+typedef float4 Quat; // w + xi + yj + zk
+
+__device__ __host__ Quat operator+(const Quat &a, const Quat &b);
+__device__ __host__ Quat operator-(const Quat &a, const Quat &b);
+__device__ __host__ Quat operator*(float lambda, const Quat &a);
+__device__ __host__ Quat operator*(const Quat &a, const Quat &b);
+__device__ __host__ Quat operator/(const Quat &a, float lambda);
+__device__ __host__ Quat cross(const Quat &a, const Quat &b);
+__device__ __host__ Quat rotate(const Quat &v, const Quat &a, float angle);
+__device__ __host__ Quat normalize(const Quat &a);
+__device__ __host__ float dot(const Quat &a, const Quat &b);
+__device__ __host__ float norm(const Quat &a);
+__device__ __host__ void normalize(Quat* a);
+__device__ __host__ Quat square(const Quat &a);
 
 #endif
