@@ -12,6 +12,6 @@ struct Julia {
     uint n;
 };
 
-__device__ float colorizeJulia(const Julia &julia, Ray* ray);
+__device__ void colorizeJulia(const Julia &julia, Ray* ray, int i);
 
 #endif

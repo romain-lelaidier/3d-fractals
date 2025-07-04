@@ -3,7 +3,7 @@
 
 #include "math.cuh"
 
-struct Moving {
+struct KeyboardMover {
     bool B, F;
     bool L, R;
     bool U, D;
@@ -19,12 +19,10 @@ struct Camera {
     float fov;
     float moveSpeed;
     float rotaSpeed;
-    Moving mv;
 };
 
 float boolsToFloat(bool l, bool r);
-void cam_updateMv(Camera &camera, float dt);
-__device__ __host__ void cam_moveFB(Camera &camera, bool f);
+void cameraUpdateMv(KeyboardMover &kbm, Camera &camera, float dt);
 __device__ float3 ndcToDirection(float x, float y, float wh, Camera &camera);
 
 #endif

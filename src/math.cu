@@ -140,6 +140,10 @@ __device__ __host__ float3 rotate(const float3 &v, const float3 &a, float angle)
     );
 }
 
+__device__ __host__ float3 copy_float3(const float3 &a) {
+    return make_float3(a.x, a.y, a.z);
+}
+
 
 __device__ __host__ Quat operator+(const Quat &a, const Quat &b) {
     return make_float4(a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w);

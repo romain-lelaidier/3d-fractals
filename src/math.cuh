@@ -31,6 +31,7 @@ __device__ __host__ float3 normalize(const float3 &a);
 __device__ __host__ float dot(const float3 &a, const float3 &b);
 __device__ __host__ float norm(const float3 &a);
 __device__ __host__ void normalize(float3* a);
+__device__ __host__ float3 copy_float3(const float3 &a);
 
 typedef float4 Quat; // w + xi + yj + zk
 

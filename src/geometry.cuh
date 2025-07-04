@@ -1,13 +1,14 @@
 #ifndef GEOMETRY_CUH
 #define GEOMETRY_CUH
 
-#include "raytracer.cuh"
+#include "ray.cuh"
 
 struct Sphere {
     float3 center;
     float radius;
+    float3 color;
 };
 
-__device__ float colorizeSphere(Sphere* sphere, Ray* ray);
+__device__ void colorizeSphere(const Sphere &sphere, Ray* ray, int i);
 
 #endif

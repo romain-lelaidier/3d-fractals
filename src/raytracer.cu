@@ -22,23 +22,47 @@ __device__ unsigned char dtc(float d) {
 
 // ----------- colorizeRay() -----------
 //
-// updates the ray's position depending on the scene
-__device__
-void colorizeRay(Ray* ray, Julia &julia) {
-    ray->color.x = 0.3;
-    ray->color.y = 0.3;
-    ray->color.z = 0.3;
-
+// calculates the ray's color depending on the scene
+__device__ void colorizeRay(Scene &scene, Ray* ray, int originI = -1) {
+    ray->i = -1;
+    ray->distance = INFINITY;
     normalize(&ray->direction);
 
-    // Sphere s = {
-    //     make_float3(0, 0, 0),
-    //     1
-    // };
+    float light = dot(ray->direction, make_float3(0,0,1));
+    light = 1 / sqrt(1 + exp(-light));
+    ray->color = light * make_float3(242, 232, 207) / 256;
+    
+    // this loop tries to intersect with every object in the scene
+    // to determine which one is closest.
+    // the result (index of the object, distance and surface normal)
+    // is stored in the ray object.
+    int i;
+    for (i = 0; i < scene.nobjs; i++) if (i != originI) {
+        switch (scene.objs[i].type) {
+            case SPHERE:
+                colorizeSphere(scene.objs[i].sphere, ray, i);
+                break;
+            case JULIA:
+                colorizeJulia(scene.objs[i].julia, ray, i);
+                break;
+        }
+    }
 
-    // colorizeSphere(&s, ray);
+    if (ray->i >= 0) {
+        // one object hit
+        Object *obj = &scene.objs[ray->i];
 
-    colorizeJulia(julia, ray);
+        // reflection
+        if (ray->bounces >= 2) return;
+
+        if (obj->type == SPHERE) {
+            // reflection
+            hitAndBounceRay(ray);
+            float3 color = copy_float3(ray->color);
+            colorizeRay(scene, ray, ray->i);
+            ray->color = 0.7 * color + 0.7 * ray->color;
+        }
+    }
 }
 
 
@@ -49,7 +73,7 @@ void colorizeRay(Ray* ray, Julia &julia) {
 // generates rays for the pixel, more than one if anti-aliasing is wanted (RPP>1)
 // and colorizes the pixel with the mean of the rays' colors
 __device__
-void colorizePixel(unsigned char* pixel, int px, int py, int width, int height, Camera &camera, Julia &julia) {
+void colorizePixel(unsigned char* pixel, int px, int py, int width, int height, Camera &camera, Scene &scene) {
     float dw = (float)width;
     float dh = (float)height;
     float sx = (float)px;
@@ -67,7 +91,8 @@ void colorizePixel(unsigned char* pixel, int px, int py, int width, int height, 
 
         ray.origin = camera.position;
         ray.direction = ndcToDirection(ndcx, ndcy, dw/dh, camera);
-        colorizeRay(&ray, julia);
+        ray.bounces = 0;
+        colorizeRay(scene, &ray);
         color = color + ray.color;
     }
 
@@ -80,11 +105,13 @@ void colorizePixel(unsigned char* pixel, int px, int py, int width, int height, 
 
 
 
-__global__
-void rayTraceKernel(
+// ----------- rayTraceKernel() -----------
+//
+// Renders the scene on imageData, from one GPU kernel
+__global__ void rayTraceKernel(
     unsigned char* imageData,
     int width, int height,
-    Camera &camera, Julia &julia
+    Camera &camera, Scene &scene
 ) {
     // gathering pixel's position
     int px = blockIdx.x * blockDim.x + threadIdx.x;
@@ -93,6 +120,6 @@ void rayTraceKernel(
     // calculate pixel's color on screen
     if (px < width && py < height) {
         int index = (py * width + px) * 3;
-        colorizePixel(&imageData[index], px, py, width, height, camera, julia);
+        colorizePixel(&imageData[index], px, py, width, height, camera, scene);
     }
 }
